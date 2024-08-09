@@ -72,19 +72,23 @@
                 <br /><br />
 
                 <div class="msg-box">
-                    {#each messages as msg}
-                        <span>{msg.username}: {msg.message}</span>
-                    {/each}
+                    <div class="messages">
+                        {#each messages as msg}
+                            <span>{msg.username}: {msg.message}</span>
+                        {/each}
+                    </div>
+                    <div>
+                        <!-- svelte-ignore a11y-autofocus -->
+                        <input
+                            autofocus
+                            bind:value={messageState}
+                            on:change={() => sendAndReset(messageState)}
+                        />
+                        <button on:click={() => sendAndReset(messageState)}
+                            >Send Msg</button
+                        >
+                    </div>
                 </div>
-                <!-- svelte-ignore a11y-autofocus -->
-                <input
-                    autofocus
-                    bind:value={messageState}
-                    on:change={() => sendAndReset(messageState)}
-                />
-                <button on:click={() => sendAndReset(messageState)}
-                    >Send Msg</button
-                >
             {:else}
                 <!-- svelte-ignore a11y-autofocus -->
                 <input
@@ -109,3 +113,47 @@
         {/if}
     </div>
 </main>
+
+<style lang="css">
+    .container {
+        display: flex;
+        flex-direction: row;
+        width: 50%;
+        margin: auto;
+    }
+
+    .chat-col {
+        width: 50%;
+        margin: auto;
+    }
+
+    .msg-box {
+        display: flex;
+        flex-direction: column;
+        color: black;
+        height: 60vh;
+        background-color: #c9deff;
+        border-radius: 8px;
+        margin: 16px 0;
+        padding: 16px;
+    }
+
+    .messages {
+        flex: 1;
+        margin-bottom: 8px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .messages span {
+        margin: 4px 0;
+    }
+
+    .dm-col {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        vertical-align: text-bottom;
+    }
+</style>

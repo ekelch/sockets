@@ -1,28 +1,9 @@
-.container {
-    display: flex;
-    flex-direction: row;
+html {
+    background-color: #4a5661;
 }
-
-.msg-box {
-    height: 70vh;
-    width: 30vw;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column-reverse;
-    border: 1px solid black;
-    padding: 0 0.5rem;
-    margin: 0.5rem 0;
-    span {
-        margin: 4px 0;
-    }
-}
-
-.chat-col {
-}
-
-.dm-col {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    vertical-align: text-bottom;
+#app {
+    color: whitesmoke;
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
 }
