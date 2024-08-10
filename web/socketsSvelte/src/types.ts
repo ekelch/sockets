@@ -4,6 +4,12 @@ export type Message = {
   clients: Map<string, UserClient>;
 };
 
+export type DirectMessage = {
+  fromUser: string;
+  toUser: string;
+  message: string;
+};
+
 export type UserClient = {
   connection: any;
   username: string;
@@ -11,5 +17,5 @@ export type UserClient = {
 
 export const DefaultMessages = {
   CONNECT: "has connected to the chat",
-  DISCONNECT: "has disconnected to the chat",
+  DISCONNECT: "has disconnected from the chat",
 };

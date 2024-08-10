@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -16,7 +17,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var clients = make(map[string]UserClient)
-var broadcast = make(chan Message)
+var broadcast = make(chan BroadcastMessage)
 
 func main() {
 	http.HandleFunc("/", homePage)
@@ -44,7 +45,7 @@ func handleCount(w http.ResponseWriter, r *http.Request) {
 
 func closeClient(conn *websocket.Conn) {
 	conn.Close()
-	msg := Message{
+	msg := BroadcastMessage{
 		Clients: clients,
 	}
 	broadcast <- msg
@@ -60,7 +61,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer closeClient(conn)
 
 	// init connect
-	var msg Message
+	var msg BroadcastMessage
 	err = conn.ReadJSON(&msg)
 	username := msg.Username
 	client := UserClient{Conn: conn, Username: username}
@@ -85,7 +86,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func broadcastMsg(message *Message) {
+func broadcastMsg(message *BroadcastMessage) {
 	message.Clients = clients
 	broadcast <- *message
 }
@@ -105,13 +106,24 @@ func receiveBroadcast() {
 	}
 }
 
-type Message struct {
+type BroadcastMessage struct {
 	Username string                `json:"username"`
 	Message  string                `json:"message"`
 	Clients  map[string]UserClient `json:"clients"`
 }
 
+type DirectMessage struct {
+	FromUser string `json:"fromUser"`
+	ToUser   string `json:"toUser"`
+	Message  string `json:"message"`
+}
+
 type UserClient struct {
 	Conn     *websocket.Conn `json:"conn"`
 	Username string          `json:"username"`
+}
+
+type JsonMessage struct {
+	Type   string          `json:"type"`
+	RawMsg json.RawMessage `json:"rawMsg"`
 }

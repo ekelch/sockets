@@ -1,8 +1,8 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import { DefaultMessages } from "../types";
+    import { DefaultMessages, type Message } from "../types";
 
-    export let messages;
+    export let messages: Message[];
     let message: string;
 
     const dispatch = createEventDispatcher();
