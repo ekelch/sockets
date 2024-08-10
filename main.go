@@ -17,14 +17,14 @@ var upgrader = websocket.Upgrader{
 }
 
 var clients = make(map[string]UserClient)
-var broadcast = make(chan BroadcastMessage)
+var broadcastChan = make(chan BroadcastMessage)
 
 func main() {
 	http.HandleFunc("/", homePage)
 	http.HandleFunc("/count", handleCount)
 	http.HandleFunc("/ws", handleConnections)
 
-	go receiveBroadcast()
+	go receiveMessages()
 
 	fmt.Println("Server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
@@ -48,8 +48,7 @@ func closeClient(conn *websocket.Conn) {
 	msg := BroadcastMessage{
 		Clients: clients,
 	}
-	broadcast <- msg
-	fmt.Print(clients)
+	broadcastChan <- msg
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -61,42 +60,67 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer closeClient(conn)
 
 	// init connect
-	var msg BroadcastMessage
-	err = conn.ReadJSON(&msg)
-	username := msg.Username
-	client := UserClient{Conn: conn, Username: username}
-	clients[username] = client
-
+	var jsonMsg JsonMessage
+	err = conn.ReadJSON(&jsonMsg)
 	if err != nil {
 		fmt.Println(err)
-		delete(clients, client.Username)
-		return
 	}
-	broadcastMsg(&msg)
+	if jsonMsg.Type == "broadcast" {
+		var broadcast BroadcastMessage
+		err = json.Unmarshal(jsonMsg.RawMsg, &broadcast)
+		if err != nil {
+			fmt.Println(err)
+			delete(clients, broadcast.FromUser)
+			return
+		}
+		clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
+		broadcastMsg(&broadcast)
+
+	} else if jsonMsg.Type == "direct" {
+		fmt.Print("direct message ph\n")
+	}
 
 	// continuous
 	for {
-		err = conn.ReadJSON(&msg)
+		err = conn.ReadJSON(&jsonMsg)
 		if err != nil {
 			fmt.Println(err)
-			delete(clients, client.Username)
-			return
 		}
-		broadcastMsg(&msg)
+		if jsonMsg.Type == "broadcast" {
+			var broadcast BroadcastMessage
+			err = json.Unmarshal(jsonMsg.RawMsg, &broadcast)
+			if err != nil {
+				fmt.Println(err)
+				delete(clients, broadcast.FromUser)
+				return
+			}
+			clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
+			broadcastMsg(&broadcast)
+
+		} else if jsonMsg.Type == "direct" {
+			fmt.Print("direct message ph\n")
+		}
 	}
 }
 
 func broadcastMsg(message *BroadcastMessage) {
 	message.Clients = clients
-	broadcast <- *message
+	broadcastChan <- *message
 }
 
-func receiveBroadcast() {
+func receiveMessages() {
 	for {
-		msg := <-broadcast
-
+		broadcastMsg := <-broadcastChan
+		brdSer, err := json.Marshal(broadcastMsg)
+		if err != nil {
+			fmt.Print(err)
+		}
+		jsonMsg := JsonMessage{
+			Type:   "broadcast",
+			RawMsg: brdSer,
+		}
 		for username, client := range clients {
-			err := client.Conn.WriteJSON(msg)
+			err := client.Conn.WriteJSON(jsonMsg)
 			if err != nil {
 				fmt.Println(err)
 				client.Conn.Close()
@@ -106,8 +130,13 @@ func receiveBroadcast() {
 	}
 }
 
+type JsonMessage struct {
+	Type   string          `json:"type"`
+	RawMsg json.RawMessage `json:"rawMsg"`
+}
+
 type BroadcastMessage struct {
-	Username string                `json:"username"`
+	FromUser string                `json:"fromUser"`
 	Message  string                `json:"message"`
 	Clients  map[string]UserClient `json:"clients"`
 }
@@ -121,9 +150,4 @@ type DirectMessage struct {
 type UserClient struct {
 	Conn     *websocket.Conn `json:"conn"`
 	Username string          `json:"username"`
-}
-
-type JsonMessage struct {
-	Type   string          `json:"type"`
-	RawMsg json.RawMessage `json:"rawMsg"`
 }

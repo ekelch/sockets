@@ -1,8 +1,12 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import { DefaultMessages, type Message } from "../types";
+    import {
+        DefaultMessages,
+        type BroadcastMessage,
+        type DirectMessage,
+    } from "../types";
 
-    export let messages: Message[];
+    export let messages: (BroadcastMessage | DirectMessage)[];
     let message: string;
 
     const dispatch = createEventDispatcher();
@@ -19,7 +23,7 @@
                 <span
                     class:con-msg={msg.message === DefaultMessages.CONNECT}
                     class:disc-msg={msg.message === DefaultMessages.DISCONNECT}
-                    >{msg.username}: {msg.message}</span
+                    >{msg.fromUser}: {msg.message}</span
                 >
             {/each}
         </div>

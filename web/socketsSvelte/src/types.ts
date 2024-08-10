@@ -1,5 +1,10 @@
-export type Message = {
-  username: string;
+export type JsonMessage = {
+  type: "broadcast" | "direct";
+  rawMsg: any;
+};
+
+export type BroadcastMessage = {
+  fromUser: string;
   message: string;
   clients: Map<string, UserClient>;
 };

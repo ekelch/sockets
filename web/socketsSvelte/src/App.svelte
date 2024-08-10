@@ -2,14 +2,15 @@
     import { onMount } from "svelte";
     import {
         DefaultMessages,
+        type BroadcastMessage,
         type DirectMessage,
-        type Message,
+        type JsonMessage,
         type UserClient,
     } from "./types";
     import "./app.css";
     import MsgBox from "./components/MsgBox.svelte";
     import Dm from "./components/DM.svelte";
-    let messages: Message[] = [];
+    let broadcastMsgs: BroadcastMessage[] = [];
     let socket: WebSocket;
     let connStatus: number = WebSocket.CLOSED;
 
@@ -33,43 +34,51 @@
         connStatus = WebSocket.OPEN;
 
         socket.addEventListener("open", (event) => {
-            sendMsg(DefaultMessages.CONNECT);
+            sendBroadcast(DefaultMessages.CONNECT);
         });
 
         // Listen for messages
         socket.addEventListener("message", (event) => {
-            const t: Message = JSON.parse(event.data);
-            oClients = new Map(Object.entries(t.clients));
-            numClients = oClients.size;
-            oClients.delete(username);
-            if (t.message && t.username) {
-                messages = [t, ...messages];
+            const jsonRec: JsonMessage = JSON.parse(event.data);
+            console.log(jsonRec);
+            if (jsonRec.type === "broadcast") {
+                const bMsg: BroadcastMessage = jsonRec.rawMsg;
+                oClients = new Map(Object.entries(bMsg.clients));
+                numClients = oClients.size;
+                oClients.delete(username);
+                if (bMsg.message && bMsg.fromUser) {
+                    broadcastMsgs = [bMsg, ...broadcastMsgs];
+                }
             }
         });
     };
 
     const disconnect = () => {
-        sendMsg(DefaultMessages.DISCONNECT);
+        sendBroadcast(DefaultMessages.DISCONNECT);
         oClients = new Map();
         username = "";
         socket.close();
         connStatus = socket.CLOSED;
-        messages = [];
+        broadcastMsgs = [];
         countClients();
     };
 
-    const sendMsg = (message: string) => {
-        socket.send(JSON.stringify({ username, message }));
-    };
-
-    const sendAndReset = (message: string) => {
-        sendMsg(message);
+    const sendBroadcast = (message: string) => {
+        const msg: JsonMessage = {
+            type: "broadcast",
+            rawMsg: { fromUser: username, message: message },
+        };
+        socket.send(JSON.stringify(msg));
         messageState = "";
     };
 
     const sendDm = (event: any) => {
         event.detail.fromUser = username;
-        console.log(event.detail);
+        const msg: JsonMessage = {
+            type: "direct",
+            rawMsg: JSON.stringify(event.detail),
+        };
+        socket.send(JSON.stringify(msg));
     };
 </script>
 
@@ -85,8 +94,8 @@
                 <br /><br />
 
                 <MsgBox
-                    {messages}
-                    on:sendMessage={(msg) => sendAndReset(msg.detail)}
+                    messages={broadcastMsgs}
+                    on:sendMessage={(msg) => sendBroadcast(msg.detail)}
                 />
             {:else}
                 <!-- svelte-ignore a11y-autofocus -->

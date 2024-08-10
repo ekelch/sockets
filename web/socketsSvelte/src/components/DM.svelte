@@ -1,11 +1,11 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import MsgBox from "./MsgBox.svelte";
-    import { type DirectMessage, type Message } from "../types";
+    import { type DirectMessage, type BroadcastMessage } from "../types";
 
     export let clients;
     let dmClient: string;
-    let dmMessages: Message[] = [];
+    let dmMessages: DirectMessage[] = [];
 
     const dispatch = createEventDispatcher();
 
