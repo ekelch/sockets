@@ -15,7 +15,6 @@
     let connStatus: number = WebSocket.CLOSED;
 
     let username: string;
-    let messageState: string;
     let oClients: Map<string, UserClient> = new Map();
     let numClients = 0;
 
@@ -40,7 +39,6 @@
         // Listen for messages
         socket.addEventListener("message", (event) => {
             const jsonRec: JsonMessage = JSON.parse(event.data);
-            console.log(jsonRec);
             if (jsonRec.type === "broadcast") {
                 const bMsg: BroadcastMessage = jsonRec.rawMsg;
                 oClients = new Map(Object.entries(bMsg.clients));
@@ -49,6 +47,8 @@
                 if (bMsg.message && bMsg.fromUser) {
                     broadcastMsgs = [bMsg, ...broadcastMsgs];
                 }
+            } else if (jsonRec.type === "direct") {
+                console.log(jsonRec.rawMsg);
             }
         });
     };
@@ -57,9 +57,11 @@
         sendBroadcast(DefaultMessages.DISCONNECT);
         oClients = new Map();
         username = "";
-        socket.close();
         connStatus = socket.CLOSED;
         broadcastMsgs = [];
+        console.log("closing websocket connection:");
+        console.log(socket);
+        socket.close(1000);
         countClients();
     };
 
@@ -68,8 +70,8 @@
             type: "broadcast",
             rawMsg: { fromUser: username, message: message },
         };
+        console.log(JSON.stringify(msg));
         socket.send(JSON.stringify(msg));
-        messageState = "";
     };
 
     const sendDm = (event: any) => {
@@ -78,6 +80,7 @@
             type: "direct",
             rawMsg: JSON.stringify(event.detail),
         };
+        console.log(msg);
         socket.send(JSON.stringify(msg));
     };
 </script>

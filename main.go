@@ -17,7 +17,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var clients = make(map[string]UserClient)
-var broadcastChan = make(chan BroadcastMessage)
+var receiveChannel = make(chan JsonMessage)
 
 func main() {
 	http.HandleFunc("/", homePage)
@@ -39,16 +39,25 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func handleCount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("ACCESS-CONTROL-ALLOW-ORIGIN", "http://localhost:5173")
-	fmt.Printf("%d\n", len(clients))
 	fmt.Fprintf(w, "%d", len(clients))
 }
 
 func closeClient(conn *websocket.Conn) {
 	conn.Close()
-	msg := BroadcastMessage{
+	fmt.Printf(":::Closing client:::\n")
+	broadMsg := BroadcastMessage{
 		Clients: clients,
 	}
-	broadcastChan <- msg
+	broadSer, err := json.Marshal(broadMsg)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	jsonMsg := JsonMessage{
+		Type:   "broadcast",
+		RawMsg: broadSer,
+	}
+	receiveChannel <- jsonMsg
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -65,60 +74,71 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	if jsonMsg.Type == "broadcast" {
-		var broadcast BroadcastMessage
-		err = json.Unmarshal(jsonMsg.RawMsg, &broadcast)
-		if err != nil {
-			fmt.Println(err)
-			delete(clients, broadcast.FromUser)
-			return
-		}
-		clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
-		broadcastMsg(&broadcast)
-
-	} else if jsonMsg.Type == "direct" {
-		fmt.Print("direct message ph\n")
-	}
+	broadcast, err := readBroadcast(jsonMsg.RawMsg)
+	clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
 
 	// continuous
+	i := 0
 	for {
+		i++
+		fmt.Println(i)
 		err = conn.ReadJSON(&jsonMsg)
-		if err != nil {
+		if err != nil { //close client failing on this read json
 			fmt.Println(err)
+			closeClient(conn)
+			return
 		}
 		if jsonMsg.Type == "broadcast" {
-			var broadcast BroadcastMessage
-			err = json.Unmarshal(jsonMsg.RawMsg, &broadcast)
-			if err != nil {
-				fmt.Println(err)
-				delete(clients, broadcast.FromUser)
-				return
-			}
-			clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
-			broadcastMsg(&broadcast)
-
+			readBroadcast(jsonMsg.RawMsg)
 		} else if jsonMsg.Type == "direct" {
-			fmt.Print("direct message ph\n")
+			readDirect(jsonMsg.RawMsg)
+		} else {
+			fmt.Println("type not found, closing conn")
+			closeClient(conn)
 		}
 	}
+}
+
+func readBroadcast(rawBroadcast json.RawMessage) (BroadcastMessage, error) {
+	var broadcast BroadcastMessage
+	err := json.Unmarshal(rawBroadcast, &broadcast)
+	if err != nil {
+		fmt.Println(err)
+		delete(clients, broadcast.FromUser)
+		return broadcast, err
+	}
+	broadcastMsg(&broadcast)
+	return broadcast, nil
+}
+
+func readDirect(rawDirect json.RawMessage) (DirectMessage, error) {
+	var dm DirectMessage
+	err := json.Unmarshal(rawDirect, &dm)
+	if err != nil {
+		fmt.Println(err)
+		delete(clients, dm.FromUser)
+		return dm, err
+	}
+	// impl send msg
+	return dm, nil
 }
 
 func broadcastMsg(message *BroadcastMessage) {
 	message.Clients = clients
-	broadcastChan <- *message
+	broadSer, err := json.Marshal(message)
+	if err != nil {
+		fmt.Print(err)
+	}
+	jsonMsg := JsonMessage{
+		Type:   "broadcast",
+		RawMsg: broadSer,
+	}
+	receiveChannel <- *&jsonMsg
 }
 
 func receiveMessages() {
 	for {
-		broadcastMsg := <-broadcastChan
-		brdSer, err := json.Marshal(broadcastMsg)
-		if err != nil {
-			fmt.Print(err)
-		}
-		jsonMsg := JsonMessage{
-			Type:   "broadcast",
-			RawMsg: brdSer,
-		}
+		jsonMsg := <-receiveChannel
 		for username, client := range clients {
 			err := client.Conn.WriteJSON(jsonMsg)
 			if err != nil {
