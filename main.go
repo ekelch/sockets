@@ -24,7 +24,7 @@ func main() {
 	http.HandleFunc("/count", handleCount)
 	http.HandleFunc("/ws", handleConnections)
 
-	go receiveMessages()
+	go scanBroadcast()
 
 	fmt.Println("Server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
@@ -44,7 +44,6 @@ func handleCount(w http.ResponseWriter, r *http.Request) {
 
 func closeClient(conn *websocket.Conn) {
 	conn.Close()
-	fmt.Printf(":::Closing client:::\n")
 	broadMsg := BroadcastMessage{
 		Clients: clients,
 	}
@@ -74,14 +73,12 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	broadcast, err := readBroadcast(jsonMsg.RawMsg)
-	clients[broadcast.FromUser] = UserClient{Conn: conn, Username: broadcast.FromUser}
+	initBroadcast, err := decodeBroadcast(jsonMsg.RawMsg)
+	clients[initBroadcast.FromUser] = UserClient{Conn: conn, Username: initBroadcast.FromUser}
+	broadcastMsg(initBroadcast)
 
 	// continuous
-	i := 0
 	for {
-		i++
-		fmt.Println(i)
 		err = conn.ReadJSON(&jsonMsg)
 		if err != nil { //close client failing on this read json
 			fmt.Println(err)
@@ -89,9 +86,18 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if jsonMsg.Type == "broadcast" {
-			readBroadcast(jsonMsg.RawMsg)
+			bm, _ := decodeBroadcast(jsonMsg.RawMsg)
+			fmt.Println(bm)
+			broadcastMsg(bm)
 		} else if jsonMsg.Type == "direct" {
-			readDirect(jsonMsg.RawMsg)
+			dm, _ := decodeDm(jsonMsg.RawMsg)
+			fmt.Println(dm)
+		} else if jsonMsg.Type == "disconnect" {
+			bm, _ := decodeBroadcast(jsonMsg.RawMsg)
+			fmt.Println(bm)
+			delete(clients, bm.FromUser)
+			broadcastMsg(bm)
+			return
 		} else {
 			fmt.Println("type not found, closing conn")
 			closeClient(conn)
@@ -99,7 +105,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readBroadcast(rawBroadcast json.RawMessage) (BroadcastMessage, error) {
+func decodeBroadcast(rawBroadcast json.RawMessage) (BroadcastMessage, error) {
 	var broadcast BroadcastMessage
 	err := json.Unmarshal(rawBroadcast, &broadcast)
 	if err != nil {
@@ -107,23 +113,21 @@ func readBroadcast(rawBroadcast json.RawMessage) (BroadcastMessage, error) {
 		delete(clients, broadcast.FromUser)
 		return broadcast, err
 	}
-	broadcastMsg(&broadcast)
 	return broadcast, nil
 }
 
-func readDirect(rawDirect json.RawMessage) (DirectMessage, error) {
+func decodeDm(rawDirect json.RawMessage) (DirectMessage, error) {
 	var dm DirectMessage
 	err := json.Unmarshal(rawDirect, &dm)
 	if err != nil {
 		fmt.Println(err)
-		delete(clients, dm.FromUser)
 		return dm, err
 	}
 	// impl send msg
 	return dm, nil
 }
 
-func broadcastMsg(message *BroadcastMessage) {
+func broadcastMsg(message BroadcastMessage) {
 	message.Clients = clients
 	broadSer, err := json.Marshal(message)
 	if err != nil {
@@ -133,16 +137,15 @@ func broadcastMsg(message *BroadcastMessage) {
 		Type:   "broadcast",
 		RawMsg: broadSer,
 	}
-	receiveChannel <- *&jsonMsg
+	receiveChannel <- jsonMsg
 }
 
-func receiveMessages() {
+func scanBroadcast() {
 	for {
 		jsonMsg := <-receiveChannel
 		for username, client := range clients {
 			err := client.Conn.WriteJSON(jsonMsg)
 			if err != nil {
-				fmt.Println(err)
 				client.Conn.Close()
 				delete(clients, username)
 			}

@@ -1,5 +1,5 @@
 export type JsonMessage = {
-  type: "broadcast" | "direct";
+  type: "broadcast" | "direct" | "disconnect";
   rawMsg: any;
 };
 

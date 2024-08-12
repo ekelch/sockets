@@ -54,15 +54,17 @@
     };
 
     const disconnect = () => {
-        sendBroadcast(DefaultMessages.DISCONNECT);
+        const msg: JsonMessage = {
+            type: "disconnect",
+            rawMsg: { fromUser: username, message: DefaultMessages.DISCONNECT },
+        };
         oClients = new Map();
         username = "";
         connStatus = socket.CLOSED;
         broadcastMsgs = [];
-        console.log("closing websocket connection:");
-        console.log(socket);
-        socket.close(1000);
-        countClients();
+
+        console.log(JSON.stringify(msg));
+        socket.send(JSON.stringify(msg));
     };
 
     const sendBroadcast = (message: string) => {
