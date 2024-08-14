@@ -18,6 +18,7 @@ var upgrader = websocket.Upgrader{
 
 var clients = make(map[string]UserClient)
 var receiveChannel = make(chan JsonMessage)
+var dmChannel = make(chan DirectMessage)
 
 func main() {
 	http.HandleFunc("/", homePage)
@@ -25,6 +26,7 @@ func main() {
 	http.HandleFunc("/ws", handleConnections)
 
 	go scanBroadcast()
+	go scanDm()
 
 	fmt.Println("Server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
@@ -87,11 +89,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 		if jsonMsg.Type == "broadcast" {
 			bm, _ := decodeBroadcast(jsonMsg.RawMsg)
-			fmt.Println(bm)
 			broadcastMsg(bm)
 		} else if jsonMsg.Type == "direct" {
-			dm, _ := decodeDm(jsonMsg.RawMsg)
-			fmt.Println(dm)
+			dm, err := decodeDm(jsonMsg.RawMsg)
+			if err != nil {
+				fmt.Println("err decoding dm")
+				return
+			}
+			dmChannel <- dm
 		} else if jsonMsg.Type == "disconnect" {
 			bm, _ := decodeBroadcast(jsonMsg.RawMsg)
 			fmt.Println(bm)
@@ -123,7 +128,6 @@ func decodeDm(rawDirect json.RawMessage) (DirectMessage, error) {
 		fmt.Println(err)
 		return dm, err
 	}
-	// impl send msg
 	return dm, nil
 }
 
@@ -149,6 +153,20 @@ func scanBroadcast() {
 				client.Conn.Close()
 				delete(clients, username)
 			}
+		}
+	}
+}
+
+func scanDm() {
+	for {
+		dm := <-dmChannel
+		dmEncode, _ := json.Marshal(dm)
+		jsonMsg := JsonMessage{Type: "direct", RawMsg: dmEncode}
+		client := clients[dm.ToUser]
+		err := client.Conn.WriteJSON(jsonMsg)
+		if err != nil {
+			client.Conn.Close()
+			delete(clients, dm.ToUser)
 		}
 	}
 }

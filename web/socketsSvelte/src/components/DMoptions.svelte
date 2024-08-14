@@ -1,25 +1,14 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import MsgBox from "./MsgBox.svelte";
-    import { type DirectMessage, type BroadcastMessage } from "../types";
+    import { type DirectMessage } from "../types";
 
     export let clients;
-    let dmClient: string;
-    let dmMessages: DirectMessage[] = [];
 
     const dispatch = createEventDispatcher();
 
-    function sendDM(msgEvent: any) {
-        let dm: DirectMessage = {
-            fromUser: "",
-            toUser: dmClient,
-            message: msgEvent.detail,
-        };
-        dispatch("sendDM", dm);
-    }
-
-    const msgUser = (toUsername: string) => {
-        dmClient = toUsername;
+    const openDm = (toUsername: string) => {
+        dispatch("openDM", toUsername);
     };
 </script>
 
@@ -31,17 +20,10 @@
                 {#each [...clients] as [key, value]}
                     <div class="dm-col">
                         <span>{value.username}</span>
-                        <button on:click={() => msgUser(key)}>dm</button>
+                        <button on:click={() => openDm(key)}>dm</button>
                     </div>
                 {/each}
             </div>
-        {/if}
-        {#if dmClient}
-            <MsgBox
-                messages={dmMessages}
-                on:sendMessage={(msgEvent) => sendDM(msgEvent)}
-            />
-            <button on:click={() => msgUser("")}>close</button>
         {/if}
     </div>
 </main>

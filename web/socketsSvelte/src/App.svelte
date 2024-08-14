@@ -9,13 +9,15 @@
     } from "./types";
     import "./app.css";
     import MsgBox from "./components/MsgBox.svelte";
-    import Dm from "./components/DM.svelte";
+    import DmOptions from "./components/DMoptions.svelte";
+    import DMclient from "./components/DMclient.svelte";
     let broadcastMsgs: BroadcastMessage[] = [];
     let socket: WebSocket;
     let connStatus: number = WebSocket.CLOSED;
 
     let username: string;
     let oClients: Map<string, UserClient> = new Map();
+    let dmClients: Map<string, DirectMessage[]> = new Map();
     let numClients = 0;
 
     onMount(async () => {
@@ -48,7 +50,15 @@
                     broadcastMsgs = [bMsg, ...broadcastMsgs];
                 }
             } else if (jsonRec.type === "direct") {
-                console.log(jsonRec.rawMsg);
+                const dm: DirectMessage = jsonRec.rawMsg;
+                const toUser: string = dm.toUser;
+                console.log(toUser);
+                dmClients = dmClients.has(toUser)
+                    ? dmClients.set(toUser, [
+                          ...dmClients.get(dm.fromUser)!,
+                          dm,
+                      ])
+                    : dmClients.set(toUser, [dm]);
             }
         });
     };
@@ -80,10 +90,15 @@
         event.detail.fromUser = username;
         const msg: JsonMessage = {
             type: "direct",
-            rawMsg: JSON.stringify(event.detail),
+            rawMsg: event.detail,
         };
-        console.log(msg);
+        console.log(JSON.stringify(msg));
         socket.send(JSON.stringify(msg));
+    };
+
+    const openDm = (event: any) => {
+        console.log(event.detail);
+        dmClients = dmClients.set(event.detail, []);
     };
 </script>
 
@@ -113,7 +128,20 @@
                 <button on:click={() => connect()}>Connect to chat</button>
             {/if}
         </div>
-        <Dm clients={oClients} on:sendDM={(event) => sendDm(event)} />
+        <DmOptions clients={oClients} on:openDM={(event) => openDm(event)} />
+    </div>
+    <div class="dm-container">
+        {#each dmClients as [toUser, messages]}
+            <div class="dm-client">
+                <span>{toUser}</span>
+            </div>
+            <DMclient
+                fromUser={username}
+                {toUser}
+                messageHist={messages}
+                on:sendDM={sendDm}
+            />
+        {/each}
     </div>
 </main>
 
@@ -127,5 +155,14 @@
     .chat-col {
         width: 75%;
         margin: auto;
+    }
+
+    .dm-container {
+        margin: auto 0 0;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .dm-client {
     }
 </style>
