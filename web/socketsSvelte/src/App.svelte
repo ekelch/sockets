@@ -51,14 +51,11 @@
                 }
             } else if (jsonRec.type === "direct") {
                 const dm: DirectMessage = jsonRec.rawMsg;
-                const toUser: string = dm.toUser;
-                console.log(toUser);
-                dmClients = dmClients.has(toUser)
-                    ? dmClients.set(toUser, [
-                          ...dmClients.get(dm.fromUser)!,
-                          dm,
-                      ])
-                    : dmClients.set(toUser, [dm]);
+                const oUser = dm.toUser === username ? dm.fromUser : dm.toUser;
+                console.log(dm);
+                dmClients = dmClients.has(oUser)
+                    ? dmClients.set(oUser, [dm, ...dmClients.get(oUser)!])
+                    : dmClients.set(oUser, [dm]);
             }
         });
     };
@@ -73,7 +70,6 @@
         connStatus = socket.CLOSED;
         broadcastMsgs = [];
 
-        console.log(JSON.stringify(msg));
         socket.send(JSON.stringify(msg));
     };
 
@@ -82,7 +78,6 @@
             type: "broadcast",
             rawMsg: { fromUser: username, message: message },
         };
-        console.log(JSON.stringify(msg));
         socket.send(JSON.stringify(msg));
     };
 
@@ -92,12 +87,10 @@
             type: "direct",
             rawMsg: event.detail,
         };
-        console.log(JSON.stringify(msg));
         socket.send(JSON.stringify(msg));
     };
 
     const openDm = (event: any) => {
-        console.log(event.detail);
         dmClients = dmClients.set(event.detail, []);
     };
 </script>

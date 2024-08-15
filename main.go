@@ -162,11 +162,19 @@ func scanDm() {
 		dm := <-dmChannel
 		dmEncode, _ := json.Marshal(dm)
 		jsonMsg := JsonMessage{Type: "direct", RawMsg: dmEncode}
-		client := clients[dm.ToUser]
-		err := client.Conn.WriteJSON(jsonMsg)
+		// toUser
+		toClient := clients[dm.ToUser]
+		err := toClient.Conn.WriteJSON(jsonMsg)
 		if err != nil {
-			client.Conn.Close()
+			toClient.Conn.Close()
 			delete(clients, dm.ToUser)
+		}
+		// echo fromUser
+		fromClient := clients[dm.FromUser]
+		err = fromClient.Conn.WriteJSON(jsonMsg)
+		if err != nil {
+			fromClient.Conn.Close()
+			delete(clients, dm.FromUser)
 		}
 	}
 }
