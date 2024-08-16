@@ -1,6 +1,9 @@
 html {
     background-color: #4a5661;
 }
+body {
+    margin: 0;
+}
 #app {
     color: whitesmoke;
     font-family: Avenir, Helvetica, Arial, sans-serif;

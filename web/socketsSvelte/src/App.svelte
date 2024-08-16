@@ -66,6 +66,7 @@
             rawMsg: { fromUser: username, message: DefaultMessages.DISCONNECT },
         };
         oClients = new Map();
+        dmClients = new Map();
         username = "";
         connStatus = socket.CLOSED;
         broadcastMsgs = [];
@@ -95,38 +96,43 @@
 </script>
 
 <main>
-    <div class="grid-container">
-        <div class="placeholder-col"></div>
-        <div class="chat-col">
-            {#if connStatus === WebSocket.OPEN}
-                <div class="msg-box-container">
-                    <BroadcastMsgBox
-                        messages={broadcastMsgs}
-                        on:sendMessage={(msg) => sendBroadcast(msg.detail)}
-                    />
-                </div>
-            {:else}
-                <div class="connect">
-                    <!-- svelte-ignore a11y-autofocus -->
-                    <input
-                        autofocus
-                        bind:value={username}
-                        on:change={connect}
-                        placeholder="enter your username"
-                    />
-                    <button on:click={connect}>Connect to chat</button>
-                </div>
-            {/if}
-        </div>
-        <div class="dm-options-col">
-            {#if connStatus === WebSocket.OPEN}
-                <p>There are {numClients} users connected to the chat</p>
-                <button on:click={() => disconnect()}
-                    >Disconnect from chat</button
-                >
-            {/if}
+    <div class="main-container">
+        {#if connStatus === WebSocket.OPEN}
+            <p class="header">Username: {username}</p>
+        {/if}
+        <div class="grid-container">
+            <div class="placeholder-col"></div>
+            <div class="chat-col">
+                {#if connStatus === WebSocket.OPEN}
+                    <div class="msg-box-container">
+                        <BroadcastMsgBox
+                            messages={broadcastMsgs}
+                            on:sendMessage={(msg) => sendBroadcast(msg.detail)}
+                        />
+                    </div>
+                {:else}
+                    <div class="connect">
+                        <!-- svelte-ignore a11y-autofocus -->
+                        <input
+                            autofocus
+                            bind:value={username}
+                            on:change={connect}
+                            placeholder="enter your username"
+                        />
+                        <button on:click={connect}>Connect to chat</button>
+                    </div>
+                {/if}
+            </div>
+            <div class="dm-options-col">
+                {#if connStatus === WebSocket.OPEN}
+                    <p>There are {numClients} users connected to the chat</p>
+                    <button on:click={() => disconnect()}
+                        >Disconnect from chat</button
+                    >
+                {/if}
 
-            <DmOptions clients={oClients} on:openDM={openDm} />
+                <DmOptions clients={oClients} on:openDM={openDm} />
+            </div>
         </div>
     </div>
 
@@ -143,10 +149,22 @@
 </main>
 
 <style lang="css">
-    .grid-container {
+    .main-container {
         display: flex;
-        margin: 1vh 0 0;
         height: 100vh;
+        flex-direction: column;
+    }
+
+    .header {
+        background-color: red;
+        height: 20px;
+        width: 100%;
+        margin: 0 8px 0 auto;
+    }
+
+    .grid-container {
+        flex: 1;
+        display: flex;
     }
 
     .placeholder-col {
@@ -155,7 +173,7 @@
 
     .chat-col {
         flex: 2;
-        height: 30vh;
+        height: 40vh;
         margin: 1vh 2vw;
         display: flex;
         flex-direction: column;
@@ -168,6 +186,10 @@
     .msg-box-container {
         display: flex;
         flex-direction: column;
+    }
+
+    .connect {
+        margin: auto auto auto 0;
     }
 
     .dm-options-col {

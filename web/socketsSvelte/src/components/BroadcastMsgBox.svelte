@@ -50,7 +50,6 @@
         color: black;
         background-color: #c9deff;
         border-radius: 8px;
-        margin: 16px 0;
         padding: 16px;
         overflow-y: scroll;
     }
