@@ -7,6 +7,7 @@
     } from "../types";
 
     export let messages: (BroadcastMessage | DirectMessage)[];
+    export let username: string;
     let message: string;
 
     const dispatch = createEventDispatcher();
@@ -22,7 +23,10 @@
             <span
                 class:con-msg={msg.message === DefaultMessages.CONNECT}
                 class:disc-msg={msg.message === DefaultMessages.DISCONNECT}
-                >{msg.fromUser}: {msg.message}</span
+                ><span class:echo-msg={msg.fromUser === username}
+                    >{msg.fromUser}:</span
+                >
+                {msg.message}</span
             >
         {/each}
     </div>
@@ -61,6 +65,10 @@
 
     .disc-msg {
         color: red;
+    }
+
+    .echo-msg {
+        font-weight: bold;
     }
 
     .messages {

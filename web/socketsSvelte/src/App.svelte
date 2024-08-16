@@ -121,6 +121,7 @@
                     <div class="msg-box-container">
                         <BroadcastMsgBox
                             messages={broadcastMsgs}
+                            {username}
                             on:sendMessage={(msg) => sendBroadcast(msg.detail)}
                         />
                     </div>

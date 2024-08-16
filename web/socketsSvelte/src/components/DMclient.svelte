@@ -30,7 +30,11 @@
                 >&#x2715;</button
             >
         </div>
-        <DirectMsgBox messages={messageHist} on:sendMessage={sendDM} />
+        <DirectMsgBox
+            messages={messageHist}
+            on:sendMessage={sendDM}
+            username={fromUser}
+        />
     </div>
 </main>
 
