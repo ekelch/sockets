@@ -8,9 +8,9 @@
         type UserClient,
     } from "./types";
     import "./app.css";
-    import MsgBox from "./components/MsgBox.svelte";
     import DmOptions from "./components/DMoptions.svelte";
     import DMclient from "./components/DMclient.svelte";
+    import BroadcastMsgBox from "./components/BroadcastMsgBox.svelte";
     let broadcastMsgs: BroadcastMessage[] = [];
     let socket: WebSocket;
     let connStatus: number = WebSocket.CLOSED;
@@ -69,7 +69,6 @@
         username = "";
         connStatus = socket.CLOSED;
         broadcastMsgs = [];
-
         socket.send(JSON.stringify(msg));
     };
 
@@ -96,38 +95,43 @@
 </script>
 
 <main>
-    <div class="container">
-        <div class="placeholder"></div>
+    <div class="grid-container">
+        <div class="placeholder-col"></div>
         <div class="chat-col">
-            <p>There are {numClients} users connected to the chat</p>
             {#if connStatus === WebSocket.OPEN}
+                <div class="msg-box-container">
+                    <BroadcastMsgBox
+                        messages={broadcastMsgs}
+                        on:sendMessage={(msg) => sendBroadcast(msg.detail)}
+                    />
+                </div>
+            {:else}
+                <div class="connect">
+                    <!-- svelte-ignore a11y-autofocus -->
+                    <input
+                        autofocus
+                        bind:value={username}
+                        on:change={connect}
+                        placeholder="enter your username"
+                    />
+                    <button on:click={connect}>Connect to chat</button>
+                </div>
+            {/if}
+        </div>
+        <div class="dm-options-col">
+            {#if connStatus === WebSocket.OPEN}
+                <p>There are {numClients} users connected to the chat</p>
                 <button on:click={() => disconnect()}
                     >Disconnect from chat</button
                 >
-                <br /><br />
-
-                <MsgBox
-                    messages={broadcastMsgs}
-                    on:sendMessage={(msg) => sendBroadcast(msg.detail)}
-                />
-            {:else}
-                <!-- svelte-ignore a11y-autofocus -->
-                <input
-                    autofocus
-                    bind:value={username}
-                    on:change={() => connect()}
-                    placeholder="enter your username"
-                />
-                <button on:click={() => connect()}>Connect to chat</button>
             {/if}
+
+            <DmOptions clients={oClients} on:openDM={openDm} />
         </div>
-        <DmOptions clients={oClients} on:openDM={(event) => openDm(event)} />
     </div>
-    <div class="dm-container">
+
+    <div class="dm-container-sticky">
         {#each dmClients as [toUser, messages]}
-            <div class="dm-client">
-                <span>{toUser}</span>
-            </div>
             <DMclient
                 fromUser={username}
                 {toUser}
@@ -139,23 +143,44 @@
 </main>
 
 <style lang="css">
-    .container {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        margin: auto;
+    .grid-container {
+        display: flex;
+        margin: 1vh 0 0;
+        height: 100vh;
+    }
+
+    .placeholder-col {
+        flex: 1;
     }
 
     .chat-col {
-        width: 75%;
-        margin: auto;
+        flex: 2;
+        height: 30vh;
+        margin: 1vh 2vw;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-col button {
+        width: fit-content;
+        padding: 2px 24px;
     }
 
-    .dm-container {
-        margin: auto 0 0;
+    .msg-box-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dm-options-col {
+        flex: 1;
+    }
+
+    .dm-container-sticky {
+        position: sticky;
+        width: fit-content;
+        gap: 16px;
+        bottom: 12px;
+        left: 12px;
         display: flex;
         flex-direction: row;
-    }
-
-    .dm-client {
     }
 </style>

@@ -1,7 +1,5 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import MsgBox from "./MsgBox.svelte";
-    import { type DirectMessage } from "../types";
 
     export let clients;
 

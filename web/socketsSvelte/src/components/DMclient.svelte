@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import type { DirectMessage, UserClient } from "../types";
-    import MsgBox from "./MsgBox.svelte";
+    import DirectMsgBox from "./DirectMsgBox.svelte";
 
     export let fromUser: string;
     export let toUser: string;
@@ -19,8 +19,24 @@
 </script>
 
 <main>
-    <MsgBox messages={messageHist} on:sendMessage={sendDM} />
+    <div class="chat-window">
+        <div class="name-header">{toUser}</div>
+        <DirectMsgBox messages={messageHist} on:sendMessage={sendDM} />
+    </div>
 </main>
 
 <style>
+    .chat-window {
+        background-color: #c9deff;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .name-header {
+        background-color: gray;
+        height: fit-content;
+        padding: 6px;
+        border-radius: 8px 8px 0 0;
+    }
 </style>
