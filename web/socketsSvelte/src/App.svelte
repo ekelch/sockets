@@ -93,15 +93,29 @@
     const openDm = (event: any) => {
         dmClients = dmClients.set(event.detail, []);
     };
+
+    const closeDm = (event: any) => {
+        dmClients.delete(event.detail);
+        dmClients = dmClients;
+    };
 </script>
 
 <main>
     <div class="main-container">
         {#if connStatus === WebSocket.OPEN}
-            <p class="header">Username: {username}</p>
+            <div class="header">
+                <div>Username: {username}</div>
+            </div>
         {/if}
         <div class="grid-container">
-            <div class="placeholder-col"></div>
+            <div class="disconnect-col">
+                {#if connStatus === WebSocket.OPEN}
+                    <p>There are {numClients} users connected to the chat</p>
+                    <button on:click={() => disconnect()}
+                        >Disconnect from chat</button
+                    >
+                {/if}
+            </div>
             <div class="chat-col">
                 {#if connStatus === WebSocket.OPEN}
                     <div class="msg-box-container">
@@ -124,13 +138,6 @@
                 {/if}
             </div>
             <div class="dm-options-col">
-                {#if connStatus === WebSocket.OPEN}
-                    <p>There are {numClients} users connected to the chat</p>
-                    <button on:click={() => disconnect()}
-                        >Disconnect from chat</button
-                    >
-                {/if}
-
                 <DmOptions clients={oClients} on:openDM={openDm} />
             </div>
         </div>
@@ -143,6 +150,7 @@
                 {toUser}
                 messageHist={messages}
                 on:sendDM={sendDm}
+                on:removeClient={closeDm}
             />
         {/each}
     </div>
@@ -156,25 +164,31 @@
     }
 
     .header {
-        background-color: red;
-        height: 20px;
-        width: 100%;
-        margin: 0 8px 0 auto;
+        background-color: lightseagreen;
+        height: 32px;
+    }
+
+    .header div {
+        width: fit-content;
+        margin: 6px 16px 0 auto;
     }
 
     .grid-container {
         flex: 1;
+        margin-top: 12px;
         display: flex;
+        justify-content: space-between;
     }
 
-    .placeholder-col {
+    .disconnect-col {
         flex: 1;
+        margin: 0 16px;
     }
 
     .chat-col {
-        flex: 2;
+        width: 50%;
         height: 40vh;
-        margin: 1vh 2vw;
+        margin: 0 auto auto;
         display: flex;
         flex-direction: column;
     }
@@ -194,6 +208,7 @@
 
     .dm-options-col {
         flex: 1;
+        margin: 0 16px;
     }
 
     .dm-container-sticky {

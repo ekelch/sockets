@@ -45,6 +45,7 @@
 <style lang="css">
     .msg-box {
         height: 50vh;
+        max-width: inherit;
         display: flex;
         flex-direction: column;
         color: black;

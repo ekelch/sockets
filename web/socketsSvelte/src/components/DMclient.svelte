@@ -16,11 +16,20 @@
         };
         dispatch("sendDM", dm);
     }
+
+    const close = () => {
+        dispatch("removeClient", toUser);
+    };
 </script>
 
 <main>
     <div class="chat-window">
-        <div class="name-header">{toUser}</div>
+        <div class="name-header">
+            <span class="header-text">{toUser}</span>
+            <button on:click={close} tabindex="0" class="header-x"
+                >&#x2715;</button
+            >
+        </div>
         <DirectMsgBox messages={messageHist} on:sendMessage={sendDM} />
     </div>
 </main>
@@ -34,9 +43,20 @@
     }
 
     .name-header {
+        display: flex;
         background-color: gray;
         height: fit-content;
         padding: 6px;
         border-radius: 8px 8px 0 0;
+    }
+
+    .header-text {
+        width: fit-content;
+    }
+
+    .header-x {
+        width: fit-content;
+        margin: 0 0 0 auto;
+        cursor: pointer;
     }
 </style>
