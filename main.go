@@ -21,6 +21,15 @@ var receiveChannel = make(chan JsonMessage)
 var dmChannel = make(chan DirectMessage)
 
 func main() {
+	// db
+	// dbName := "file:./local.db"
+	// db, dbErr := sql.Open("libsql", dbName)
+	// if dbErr != nil {
+	// 	fmt.Fprintf(os.Stderr, "Failed to open db: %s", dbErr)
+	// 	os.Exit(1)
+	// }
+	// defer db.Close()
+	// db
 	http.HandleFunc("/", homePage)
 	http.HandleFunc("/count", handleCount)
 	http.HandleFunc("/ws", handleConnections)

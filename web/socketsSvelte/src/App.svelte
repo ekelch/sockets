@@ -215,7 +215,7 @@
     .dm-container-sticky {
         position: sticky;
         width: fit-content;
-        gap: 16px;
+        gap: 12px;
         bottom: 12px;
         left: 12px;
         display: flex;
