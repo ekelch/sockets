@@ -11,6 +11,7 @@
     import DmOptions from "./components/DMoptions.svelte";
     import DMclient from "./components/DMclient.svelte";
     import BroadcastMsgBox from "./components/BroadcastMsgBox.svelte";
+    import Auth from "./components/auth.svelte";
     let broadcastMsgs: BroadcastMessage[] = [];
     let socket: WebSocket;
     let connStatus: number = WebSocket.CLOSED;
@@ -30,7 +31,8 @@
             .then((data) => (numClients = data));
     };
 
-    const connect = () => {
+    const connect = (uname: string) => {
+        username = uname;
         socket = new WebSocket("ws://localhost:8080/ws");
         connStatus = WebSocket.OPEN;
 
@@ -126,16 +128,7 @@
                         />
                     </div>
                 {:else}
-                    <div class="connect">
-                        <!-- svelte-ignore a11y-autofocus -->
-                        <input
-                            autofocus
-                            bind:value={username}
-                            on:change={connect}
-                            placeholder="enter your username"
-                        />
-                        <button on:click={connect}>Connect to chat</button>
-                    </div>
+                    <Auth on:connect={(event) => connect(event.detail)} />
                 {/if}
             </div>
             <div class="dm-options-col">
@@ -156,6 +149,8 @@
         {/each}
     </div>
 </main>
+
+<svelte:window on:beforeunload={disconnect} />
 
 <style lang="css">
     .main-container {
@@ -193,18 +188,10 @@
         display: flex;
         flex-direction: column;
     }
-    .chat-col button {
-        width: fit-content;
-        padding: 2px 24px;
-    }
 
     .msg-box-container {
         display: flex;
         flex-direction: column;
-    }
-
-    .connect {
-        margin: auto auto auto 0;
     }
 
     .dm-options-col {

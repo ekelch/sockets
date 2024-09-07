@@ -34,8 +34,8 @@ func main() {
 	http.HandleFunc("/count", handleCount)
 	http.HandleFunc("/ws", handleConnections)
 
-	go scanBroadcast()
-	go scanDm()
+	go scanMessages()
+	go receiveDM()
 
 	fmt.Println("Server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
@@ -119,41 +119,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func decodeBroadcast(rawBroadcast json.RawMessage) (BroadcastMessage, error) {
-	var broadcast BroadcastMessage
-	err := json.Unmarshal(rawBroadcast, &broadcast)
-	if err != nil {
-		fmt.Println(err)
-		delete(clients, broadcast.FromUser)
-		return broadcast, err
-	}
-	return broadcast, nil
-}
-
-func decodeDm(rawDirect json.RawMessage) (DirectMessage, error) {
-	var dm DirectMessage
-	err := json.Unmarshal(rawDirect, &dm)
-	if err != nil {
-		fmt.Println(err)
-		return dm, err
-	}
-	return dm, nil
-}
-
-func broadcastMsg(message BroadcastMessage) {
-	message.Clients = clients
-	broadSer, err := json.Marshal(message)
-	if err != nil {
-		fmt.Print(err)
-	}
-	jsonMsg := JsonMessage{
-		Type:   "broadcast",
-		RawMsg: broadSer,
-	}
-	receiveChannel <- jsonMsg
-}
-
-func scanBroadcast() {
+func scanMessages() {
 	for {
 		jsonMsg := <-receiveChannel
 		for username, client := range clients {
@@ -166,7 +132,7 @@ func scanBroadcast() {
 	}
 }
 
-func scanDm() {
+func receiveDM() {
 	for {
 		dm := <-dmChannel
 		dmEncode, _ := json.Marshal(dm)
