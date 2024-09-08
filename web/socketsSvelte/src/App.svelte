@@ -11,7 +11,7 @@
     import DmOptions from "./components/DMoptions.svelte";
     import DMclient from "./components/DMclient.svelte";
     import BroadcastMsgBox from "./components/BroadcastMsgBox.svelte";
-    import Auth from "./components/auth.svelte";
+    import Auth from "./components/Auth.svelte";
     let broadcastMsgs: BroadcastMessage[] = [];
     let socket: WebSocket;
     let connStatus: number = WebSocket.CLOSED;
@@ -63,6 +63,7 @@
     };
 
     const disconnect = () => {
+        console.log("disconnecting");
         const msg: JsonMessage = {
             type: "disconnect",
             rawMsg: { fromUser: username, message: DefaultMessages.DISCONNECT },
@@ -150,7 +151,11 @@
     </div>
 </main>
 
-<svelte:window on:beforeunload={disconnect} />
+<svelte:window
+    on:beforeunload={() => {
+        if (socket) disconnect();
+    }}
+/>
 
 <style lang="css">
     .main-container {
